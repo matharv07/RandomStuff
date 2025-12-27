@@ -1,3 +1,4 @@
+"""AI GENERATED CODE"""
 import csv
 import random
 import math
@@ -6,9 +7,7 @@ def generate_synthetic_data(filename="input_sensor_accelerometer.txt", num_sampl
     with open(filename, 'w', newline='') as csvfile:
         fieldnames = ['time_step', 'ax_g', 'ay_g', 'az_g']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-
-        writer.writeheader()
-        
+        writer.writeheader() 
         for t in range(num_samples):
             # Gravity on Z-axis (approx 1g)
             base_z = 1.0 

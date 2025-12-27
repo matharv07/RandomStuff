@@ -1,7 +1,7 @@
-import random
 import math
 import collections
 import statistics
+import csv
 
 class AccelerometerProcessor:
     def __init__(self, 
@@ -26,9 +26,6 @@ class AccelerometerProcessor:
 
     def convert_units(self, raw_reading):
         """Convert raw readings to physical units (e.g., mm/s^2)."""
-        # Assuming input is in 'g' or arbitrary units, scale to mm/s^2
-        # If input is already mm, unit_scale can be 1.0
-        # Example: Input 1.0 -> Output 9810 mm/s^2 if scale is 9810
         return [val * self.unit_scale for val in raw_reading]
 
     def remove_noise(self, reading):
@@ -36,11 +33,9 @@ class AccelerometerProcessor:
         self.history_x.append(reading[0])
         self.history_y.append(reading[1])
         self.history_z.append(reading[2])
-        
         avg_x = sum(self.history_x) / len(self.history_x)
         avg_y = sum(self.history_y) / len(self.history_y)
         avg_z = sum(self.history_z) / len(self.history_z)
-        
         return [avg_x, avg_y, avg_z]
 
     def apply_threshold(self, reading):
@@ -73,22 +68,16 @@ class AccelerometerProcessor:
         return [max(-1.0, min(1.0, val / self.normalization_range)) for val in reading]
 
     def process(self, raw_reading):
-        """Run the full processing pipeline."""
         # 1. Unit Conversion
         converted = self.convert_units(raw_reading)
-        
         # 2. Noise Removal
         smoothed = self.remove_noise(converted)
-        
         # 3. Thresholding
         thresholded = self.apply_threshold(smoothed)
-        
         # 4. Outlier Detection
         is_outlier, _ = self.detect_outliers(thresholded)
-        
         # 5. Normalization
         normalized = self.normalize(thresholded)
-        
         return {
             "raw": raw_reading,
             "converted": converted,
@@ -98,21 +87,15 @@ class AccelerometerProcessor:
             "normalized": normalized
         }
 
-import csv
-
 def main():
     input_file = "input_sensor_accelerometer.txt"
     output_file = "output_sensor_accelerometer.txt"
-
-    # Configure processor
-    # Assume input is in 'g', we want output in mm/s^2. 1g = 9810 mm/s^2
     processor = AccelerometerProcessor(
         unit_scale=9810.0, 
         noise_window=5,
-        deadband_threshold=100.0, # mm/s^2
+        deadband_threshold=100.0, 
         outlier_threshold=3.0,
-        normalization_range=20000.0 # Max expected ~2g
-    )
+        normalization_range=20000.0)
 
     print(f"Reading from {input_file}...")
     print(f"{'Step':<5} | {'Raw (g)':<25} | {'Smoothed (mm/s²)':<25} | {'Outlier':<8} | {'Norm X':<8}")
@@ -121,8 +104,6 @@ def main():
     try:
         with open(input_file, 'r') as infile, open(output_file, 'w', newline='') as outfile:
             reader = csv.DictReader(infile)
-            
-            # Define output fields
             fieldnames = ['time_step', 
                           'raw_x', 'raw_y', 'raw_z', 
                           'smooth_x', 'smooth_y', 'smooth_z', 
@@ -130,24 +111,19 @@ def main():
                           'norm_x', 'norm_y', 'norm_z']
             writer = csv.DictWriter(outfile, fieldnames=fieldnames)
             writer.writeheader()
-
             for row in reader:
                 t = row['time_step']
                 try:
                     raw_reading = [float(row['ax_g']), float(row['ay_g']), float(row['az_g'])]
                 except ValueError:
                     continue # Skip bad lines
-
                 result = processor.process(raw_reading)
-                
                 # Console Output
                 raw_str = f"[{raw_reading[0]:.2f}, {raw_reading[1]:.2f}, {raw_reading[2]:.2f}]"
                 smooth_str = f"[{result['smoothed'][0]:.0f}, {result['smoothed'][1]:.0f}, {result['smoothed'][2]:.0f}]"
                 outlier_str = "YES" if result['is_outlier'] else "NO"
-                norm_x_str = f"{result['normalized'][0]:.2f}"
-                
+                norm_x_str = f"{result['normalized'][0]:.2f}" 
                 print(f"{t:<5} | {raw_str:<25} | {smooth_str:<25} | {outlier_str:<8} | {norm_x_str:<8}")
-
                 # File Output
                 writer.writerow({
                     'time_step': t,
@@ -156,9 +132,7 @@ def main():
                     'is_outlier': result['is_outlier'],
                     'norm_x': result['normalized'][0], 'norm_y': result['normalized'][1], 'norm_z': result['normalized'][2]
                 })
-
         print(f"\nProcessing complete. Results saved to {output_file}")
-
     except FileNotFoundError:
         print(f"Error: Could not find {input_file}. Please generate data first.")
 
