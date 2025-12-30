@@ -1,18 +1,30 @@
-import pybullet_envs
 import gym
+import sys
+
+# Monkeypatch for pybullet_envs compatibility with gym >= 0.21
+# pybullet_envs expects registry.env_specs, which was removed.
+if hasattr(gym.envs.registration, 'registry') and not hasattr(gym.envs.registration.registry, 'env_specs'):
+    class RegistryWrapper(dict):
+        @property
+        def env_specs(self):
+            return self
+    gym.envs.registration.registry = RegistryWrapper(gym.envs.registration.registry)
+
+import pybullet_envs
 import numpy as np
 from sac_torch import Agent
 from utils import plot_learning_curve
 from gym import wrappers
 
 if __name__ == '__main__':
-    env = gym.make('InvertedPendulumBulletEnv-v0')
+    # Use apply_api_compatibility=True to handle legacy pybullet envs with Gym 0.26+
+    env = gym.make('InvertedPendulumBulletEnv-v0', apply_api_compatibility=True)
     agent = Agent(input_dims=env.observation_space.shape, env=env,
             n_actions=env.action_space.shape[0])
     n_games = 250
     # uncomment this line and do a mkdir tmp && mkdir video if you want to
     # record video of the agent playing the game.
-    env = wrappers.Monitor(env, 'tmp/video', video_callable=lambda episode_id: True, force=True)
+    # env = wrappers.Monitor(env, 'tmp/video', video_callable=lambda episode_id: True, force=True)
     filename = 'inverted_pendulum.png'
 
     figure_file = 'plots/' + filename
@@ -27,11 +39,20 @@ if __name__ == '__main__':
 
     for i in range(n_games):
         observation = env.reset()
+        if isinstance(observation, tuple):
+             observation = observation[0]
         done = False
         score = 0
         while not done:
             action = agent.choose_action(observation)
-            observation_, reward, done, info = env.step(action)
+            step_result = env.step(action)
+            # Handle both old (4 values) and new (5 values) gym APIs
+            if len(step_result) == 5:
+                observation_, reward, terminated, truncated, info = step_result
+                done = terminated or truncated
+            else:
+                 observation_, reward, done, info = step_result
+            
             score += reward
             agent.remember(observation, action, reward, observation_, done)
             if not load_checkpoint:
