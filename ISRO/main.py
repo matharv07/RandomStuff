@@ -5,9 +5,9 @@ import red_oxide
 import glass_oxide
 
 def main():
-    # Process images from marslr0 to marslr3
-    for i in range(5):
-        filename = f"/home/atharv/Documents/Antigravity Projects/RandomStuff/ISRO/images/marslr{i}.png"
+    # Process images from 0 to 4
+    for i in range(9):
+        filename = f"/home/atharv/Documents/Antigravity Projects/RandomStuff/ISRO/images/{i}.png"
         print(f"\nProcessing {filename}...")
         
         # Load the image
