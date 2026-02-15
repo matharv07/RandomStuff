@@ -5,27 +5,22 @@ import red_oxide
 import glass_oxide
 
 def main():
-    # Process images from 0 to 4
     for i in range(9):
         filename = f"/home/atharv/Documents/Antigravity Projects/RandomStuff/ISRO/images/{i}.png"
         print(f"\nProcessing {filename}...")
         
-        # Load the image
         frame = cv2.imread(filename)
 
         if frame is None:
             print(f"Error: Could not read image {filename}. Skipping.")
             continue
         
-        # Process the image with the three modules
         prob_layered = layered_rock.process_image(frame)
         prob_red = red_oxide.process_image(frame)
         prob_glass = glass_oxide.process_image(frame)
         
-        # Create the probability vector
         probability_vector = [prob_layered, prob_red, prob_glass]
         
-        # Output the results
         print("-" * 30)
         print("Processing Results:")
         print(f"Layered Rock Probability: {prob_layered:.4f}")
